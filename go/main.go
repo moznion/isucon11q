@@ -42,6 +42,7 @@ const (
 	scoreConditionLevelInfo     = 3
 	scoreConditionLevelWarning  = 2
 	scoreConditionLevelCritical = 1
+	isuImagesDirectory          = "/home/isucon/isu-images"
 )
 
 var (
@@ -210,6 +211,21 @@ func init() {
 	}
 }
 
+func dumpIsuJpgFiles() {
+	tx, _ := db.Beginx()
+
+	defer tx.Rollback()
+	isuList := []Isu{}
+	tx.Select(
+		&isuList,
+		"SELECT * FROM `isu` ORDER BY `id` DESC",
+	)
+
+	for _, isu := range isuList {
+		os.WriteFile(makeIsuImageFilePath(isu.JIAUserID, isu.JIAIsuUUID), isu.Image, 0644)
+	}
+}
+
 func main() {
 	log.Print("I'M START 2")
 	jiaServiceUrl = ""
@@ -334,6 +350,9 @@ func postInitialize(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "bad request body")
 	}
 
+	_ = os.RemoveAll(isuImagesDirectory)
+	_ = os.Mkdir(isuImagesDirectory, 0766)
+
 	cmd := exec.Command("../sql/init.sh")
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stderr
@@ -357,6 +376,9 @@ func postInitialize(c echo.Context) error {
 	jiaServiceUrl = request.JIAServiceURL
 
 	log.Print("initialize finish.")
+
+	dumpIsuJpgFiles()
+
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
 	})
@@ -534,6 +556,10 @@ func getIsuList(c echo.Context) error {
 	return c.JSON(http.StatusOK, responseList)
 }
 
+func makeIsuImageFilePath(jiaUserID, jiaIsuUUID string) string {
+	return fmt.Sprintf("%s/%s-%s.jpg", isuImagesDirectory, jiaUserID, jiaIsuUUID)
+}
+
 // POST /api/isu
 // ISUを登録
 func postIsu(c echo.Context) error {
@@ -582,6 +608,12 @@ func postIsu(c echo.Context) error {
 		}
 	}
 
+	err = os.WriteFile(makeIsuImageFilePath(jiaUserID, jiaIsuUUID), image, 0644)
+	if err != nil {
+		c.Logger().Errorf("jpg file out error: %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
 	tx, err := db.Beginx()
 	if err != nil {
 		c.Logger().Errorf("db error: %v", err)
@@ -590,8 +622,8 @@ func postIsu(c echo.Context) error {
 	defer tx.Rollback()
 
 	_, err = tx.Exec("INSERT INTO `isu`"+
-		"	(`jia_isu_uuid`, `name`, `image`, `jia_user_id`) VALUES (?, ?, ?, ?)",
-		jiaIsuUUID, isuName, image, jiaUserID)
+		"	(`jia_isu_uuid`, `name`, `jia_user_id`) VALUES (?, ?, ?)",
+		jiaIsuUUID, isuName, jiaUserID)
 	if err != nil {
 		mysqlErr, ok := err.(*mysql.MySQLError)
 
@@ -695,6 +727,18 @@ func getIsuID(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	imageFilePath := makeIsuImageFilePath(jiaUserID, jiaIsuUUID)
+	_, err = os.Stat(imageFilePath)
+	if err != nil {
+		return c.String(http.StatusNotFound, "not found: isu")
+	}
+	jpgImgBin, err := os.ReadFile(imageFilePath)
+	if err != nil {
+		c.Logger().Errorf("jpg file read error: %v", err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	res.Image = jpgImgBin
+
 	return c.JSON(http.StatusOK, res)
 }
 
@@ -713,15 +757,14 @@ func getIsuIcon(c echo.Context) error {
 
 	jiaIsuUUID := c.Param("jia_isu_uuid")
 
-	var image []byte
-	err = db.Get(&image, "SELECT `image` FROM `isu` WHERE `jia_user_id` = ? AND `jia_isu_uuid` = ?",
-		jiaUserID, jiaIsuUUID)
+	imageFilePath := makeIsuImageFilePath(jiaUserID, jiaIsuUUID)
+	_, err = os.Stat(imageFilePath)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return c.String(http.StatusNotFound, "not found: isu")
-		}
-
-		c.Logger().Errorf("db error: %v", err)
+		return c.String(http.StatusNotFound, "not found: isu")
+	}
+	image, err := os.ReadFile(imageFilePath)
+	if err != nil {
+		c.Logger().Errorf("jpg file read error: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
