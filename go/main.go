@@ -1281,7 +1281,7 @@ func getTrend(c echo.Context) error {
 		trendingList := []Trending{}
 		err = db.Select(
 			&trendingList,
-			"SELECT con.timestamp as `timestamp` , con.`condition` as `condition`, isu.`id` as `id` FROM (select timestamp , `condition`, jia_isu_uuid FROM isu_condition GROUP BY jia_isu_uuid, timestamp ORDER BY `timestamp` DESC) con INNER JOIN isu ON con.jia_isu_uuid = isu.jia_isu_uuid WHERE isu.character = ?",
+			"SELECT con.timestamp as `timestamp` , con.`condition` as `condition`, isu.`id` as `id` FROM (select max(timestamp) as `timestamp`, `condition`, jia_isu_uuid FROM isu_condition GROUP BY jia_isu_uuid ORDER BY `timestamp` DESC) con INNER JOIN isu ON con.jia_isu_uuid = isu.jia_isu_uuid WHERE isu.character = ?",
 			character.Character,
 		)
 		if err != nil {
