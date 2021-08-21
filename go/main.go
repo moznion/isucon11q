@@ -505,6 +505,7 @@ func getIsuList(c echo.Context) error {
 
 		var formattedCondition *GetIsuConditionResponse
 		if foundLastCondition {
+			// #12
 			conditionLevel, err := calculateConditionLevel(lastCondition.Condition)
 			if err != nil {
 				c.Logger().Error(err)
@@ -1029,6 +1030,7 @@ func getIsuConditionsFromDB(db *sqlx.DB, jiaIsuUUID string, endTime time.Time, c
 
 	conditionsResponse := []*GetIsuConditionResponse{}
 	for _, c := range conditions {
+		// #12
 		cLevel, err := calculateConditionLevel(c.Condition)
 		if err != nil {
 			continue
@@ -1056,6 +1058,7 @@ func getIsuConditionsFromDB(db *sqlx.DB, jiaIsuUUID string, endTime time.Time, c
 }
 
 // ISUのコンディションの文字列からコンディションレベルを計算
+// #12
 func calculateConditionLevel(condition string) (string, error) {
 	var conditionLevel string
 
@@ -1112,7 +1115,9 @@ func getTrend(c echo.Context) error {
 			}
 
 			if len(conditions) > 0 {
+				// 最新のCondから見る
 				isuLastCondition := conditions[0]
+				// #12 レベルを計算
 				conditionLevel, err := calculateConditionLevel(isuLastCondition.Condition)
 				if err != nil {
 					c.Logger().Error(err)
@@ -1264,36 +1269,46 @@ func postIsuCondition(c echo.Context) error {
 
 // ISUのコンディションの文字列がcsv形式になっているか検証
 func isValidConditionFormat(conditionStr string) bool {
+	b := conditionStr == "is_broken=true,is_dirty=true,is_overweight=true" ||
+		conditionStr == "is_broken=true,is_dirty=true,is_overweight=false" ||
+		conditionStr == "is_broken=true,is_dirty=false,is_overweight=true" ||
+		conditionStr == "is_broken=true,is_dirty=false,is_overweight=false" ||
+		conditionStr == "is_broken=false,is_dirty=true,is_overweight=true" ||
+		conditionStr == "is_broken=false,is_dirty=false,is_overweight=true" ||
+		conditionStr == "is_broken=false,is_dirty=false,is_overweight=false"
+	return b
 
-	keys := []string{"is_dirty=", "is_overweight=", "is_broken="}
-	const valueTrue = "true"
-	const valueFalse = "false"
-
-	idxCondStr := 0
-
-	for idxKeys, key := range keys {
-		if !strings.HasPrefix(conditionStr[idxCondStr:], key) {
-			return false
-		}
-		idxCondStr += len(key)
-
-		if strings.HasPrefix(conditionStr[idxCondStr:], valueTrue) {
-			idxCondStr += len(valueTrue)
-		} else if strings.HasPrefix(conditionStr[idxCondStr:], valueFalse) {
-			idxCondStr += len(valueFalse)
-		} else {
-			return false
-		}
-
-		if idxKeys < (len(keys) - 1) {
-			if conditionStr[idxCondStr] != ',' {
-				return false
-			}
-			idxCondStr++
-		}
-	}
-
-	return (idxCondStr == len(conditionStr))
+	//// ---
+	//
+	//keys := []string{"is_dirty=", "is_overweight=", "is_broken="}
+	//const valueTrue = "true"
+	//const valueFalse = "false"
+	//
+	//idxCondStr := 0
+	//
+	//for idxKeys, key := range keys {
+	//	if !strings.HasPrefix(conditionStr[idxCondStr:], key) {
+	//		return false
+	//	}
+	//	idxCondStr += len(key)
+	//
+	//	if strings.HasPrefix(conditionStr[idxCondStr:], valueTrue) {
+	//		idxCondStr += len(valueTrue)
+	//	} else if strings.HasPrefix(conditionStr[idxCondStr:], valueFalse) {
+	//		idxCondStr += len(valueFalse)
+	//	} else {
+	//		return false
+	//	}
+	//
+	//	if idxKeys < (len(keys) - 1) {
+	//		if conditionStr[idxCondStr] != ',' {
+	//			return false
+	//		}
+	//		idxCondStr++
+	//	}
+	//}
+	//
+	//return (idxCondStr == len(conditionStr))
 }
 
 func getIndex(c echo.Context) error {
