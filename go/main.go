@@ -52,7 +52,7 @@ var (
 
 	postIsuConditionTargetBaseURL string // JIAへのactivate時に登録する，ISUがconditionを送る先のURL
 
-	JiaServiceUrl string
+	jiaServiceUrl string
 )
 
 type Config struct {
@@ -210,8 +210,8 @@ func init() {
 }
 
 func main() {
-	log.Print("I'M START 1")
-	JiaServiceUrl = ""
+	log.Print("I'M START 2")
+	jiaServiceUrl = ""
 
 	// TODO 最後にコレひっぺがしてください
 	go func() {
@@ -303,8 +303,8 @@ func getUserIDFromSession(c echo.Context) (string, int, error) {
 }
 
 func getJIAServiceURL(tx *sqlx.Tx) string {
-	if len(JiaServiceUrl) > 0 {
-		return JiaServiceUrl
+	if len(jiaServiceUrl) > 0 {
+		return jiaServiceUrl
 	}
 
 	var config Config
@@ -316,7 +316,7 @@ func getJIAServiceURL(tx *sqlx.Tx) string {
 		return defaultJIAServiceURL
 	}
 
-	JiaServiceUrl = config.URL
+	jiaServiceUrl = config.URL
 	log.Print("service url was not cached. now cached.")
 	return config.URL
 }
@@ -351,7 +351,7 @@ func postInitialize(c echo.Context) error {
 	}
 
 	log.Print("cache request.JIAServiceURL: " + request.JIAServiceURL)
-	JiaServiceUrl = request.JIAServiceURL
+	jiaServiceUrl = request.JIAServiceURL
 
 	log.Print("initialize finish.")
 	return c.JSON(http.StatusOK, InitializeResponse{
