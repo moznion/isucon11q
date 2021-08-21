@@ -222,7 +222,7 @@ func dumpIsuJpgFiles() {
 	)
 
 	for _, isu := range isuList {
-		os.WriteFile(makeIsuImageFilePath(isu.JIAUserID, isu.JIAIsuUUID), isu.Image, 0644)
+		os.WriteFile(makeIsuImageFilePath(isu.JIAUserID, isu.JIAIsuUUID), isu.Image, 0777)
 	}
 }
 
@@ -351,7 +351,7 @@ func postInitialize(c echo.Context) error {
 	}
 
 	_ = os.RemoveAll(isuImagesDirectory)
-	_ = os.Mkdir(isuImagesDirectory, 0766)
+	_ = os.Mkdir(isuImagesDirectory, 0777)
 
 	cmd := exec.Command("../sql/init.sh")
 	cmd.Stderr = os.Stderr
@@ -608,7 +608,7 @@ func postIsu(c echo.Context) error {
 		}
 	}
 
-	err = os.WriteFile(makeIsuImageFilePath(jiaUserID, jiaIsuUUID), image, 0644)
+	err = os.WriteFile(makeIsuImageFilePath(jiaUserID, jiaIsuUUID), image, 0777)
 	if err != nil {
 		c.Logger().Errorf("jpg file out error: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -756,6 +756,10 @@ func getIsuIcon(c echo.Context) error {
 	}
 
 	jiaIsuUUID := c.Param("jia_isu_uuid")
+
+	if _, err = os.Stat(makeIsuImageFilePath(jiaUserID, jiaIsuUUID)); err != nil {
+		return c.String(http.StatusNotFound, "not found: isu")
+	}
 
 	c.Response().Header().Set("X-Accel-Redirect", fmt.Sprintf("/image_redirect/%s-%s.jpg", jiaUserID, jiaIsuUUID))
 
