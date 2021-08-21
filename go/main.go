@@ -1060,21 +1060,48 @@ func getIsuConditionsFromDB(db *sqlx.DB, jiaIsuUUID string, endTime time.Time, c
 // ISUのコンディションの文字列からコンディションレベルを計算
 // #12
 func calculateConditionLevel(condition string) (string, error) {
-	var conditionLevel string
-
-	warnCount := strings.Count(condition, "=true")
-	switch warnCount {
-	case 0:
-		conditionLevel = conditionLevelInfo
-	case 1, 2:
-		conditionLevel = conditionLevelWarning
-	case 3:
-		conditionLevel = conditionLevelCritical
-	default:
-		return "", fmt.Errorf("unexpected warn count")
+	if condition == "is_dirty=true,is_overweight=true,is_broken=true" {
+		return conditionLevelCritical, nil
 	}
+	if condition == "is_dirty=true,is_overweight=true,is_broken=false" {
+		return conditionLevelWarning, nil
+	}
+	if condition == "is_dirty=true,is_overweight=false,is_broken=true" {
+		return conditionLevelWarning, nil
+	}
+	if condition == "is_dirty=true,is_overweight=false,is_broken=false" {
+		return conditionLevelWarning, nil
+	}
+	if condition == "is_dirty=false,is_overweight=true,is_broken=true" {
+		return conditionLevelWarning, nil
+	}
+	if condition == "is_dirty=false,is_overweight=true,is_broken=false" {
+		return conditionLevelWarning, nil
+	}
+	if condition == "is_dirty=false,is_overweight=false,is_broken=true" {
+		return conditionLevelWarning, nil
+	}
+	if condition == "is_dirty=false,is_overweight=false,is_broken=false" {
+		return conditionLevelInfo, nil
+	}
+	return "", fmt.Errorf("unexpected warn count")
 
-	return conditionLevel, nil
+	//
+	//var conditionLevel string
+	//
+	//warnCount := strings.Count(condition, "=true")
+	//switch warnCount {
+	//case 0:
+	//	conditionLevel = conditionLevelInfo
+	//case 1, 2:
+	//	conditionLevel = conditionLevelWarning
+	//case 3:
+	//	conditionLevel = conditionLevelCritical
+	//default:
+	//	return "", fmt.Errorf("unexpected warn count")
+	//}
+	//
+	//return conditionLevel, nil
 }
 
 // GET /api/trend
