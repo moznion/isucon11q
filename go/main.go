@@ -51,6 +51,8 @@ var (
 	jiaJWTSigningKey *ecdsa.PublicKey
 
 	postIsuConditionTargetBaseURL string // JIAへのactivate時に登録する，ISUがconditionを送る先のURL
+
+	jiaServiceUrl string
 )
 
 type Config struct {
@@ -208,6 +210,9 @@ func init() {
 }
 
 func main() {
+	log.Print("I'M START 2")
+	jiaServiceUrl = ""
+
 	// TODO 最後にコレひっぺがしてください
 	go func() {
 		log.Fatal(http.ListenAndServe("localhost:6060", nil))
@@ -298,6 +303,10 @@ func getUserIDFromSession(c echo.Context) (string, int, error) {
 }
 
 func getJIAServiceURL(tx *sqlx.Tx) string {
+	if len(jiaServiceUrl) > 0 {
+		return jiaServiceUrl
+	}
+
 	var config Config
 	err := tx.Get(&config, "SELECT * FROM `isu_association_config` WHERE `name` = ?", "jia_service_url")
 	if err != nil {
@@ -306,12 +315,16 @@ func getJIAServiceURL(tx *sqlx.Tx) string {
 		}
 		return defaultJIAServiceURL
 	}
+
+	jiaServiceUrl = config.URL
+	log.Print("service url was not cached. now cached.")
 	return config.URL
 }
 
 // POST /initialize
 // サービスを初期化
 func postInitialize(c echo.Context) error {
+	log.Print("initialize....")
 	var request InitializeRequest
 	err := c.Bind(&request)
 	if err != nil {
@@ -337,6 +350,10 @@ func postInitialize(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
+	log.Print("cache request.JIAServiceURL: " + request.JIAServiceURL)
+	jiaServiceUrl = request.JIAServiceURL
+
+	log.Print("initialize finish.")
 	return c.JSON(http.StatusOK, InitializeResponse{
 		Language: "go",
 	})
