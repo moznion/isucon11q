@@ -1292,16 +1292,17 @@ func postIsuCondition(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "bad request body")
 	}
 
-	var jiaUserID string
-	err = db.Get(&jiaUserID, "SELECT `jia_user_id` FROM `isu` WHERE `jia_isu_uuid` = ?", jiaIsuUUID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return c.String(http.StatusNotFound, "not found: isu")
-		}
+	// =====
+	//log.Printf("=== TRY AUTH ===%#v", jiaIsuUUID)
 
-		c.Logger().Errorf("db error: %v", err)
-		return c.NoContent(http.StatusInternalServerError)
+	var jiaUserID string
+	err = db.Get(&jiaUserID, "SELECT `jia_user_id` FROM `isu` WHERE `jia_isu_uuid` = ? LIMIT 1", jiaIsuUUID)
+	if err != nil {
+		//log.Printf("=== AUTH FAILED ===%#v", jiaIsuUUID)
+		return c.String(http.StatusNotFound, "not found: isu")
 	}
+
+	//log.Printf("=== AUTH SUCCESS ===%#v", jiaUserID)
 
 	parameters := make([]interface{}, 0, 1000)
 	placeHolders := make([]string, 0, len(req))
