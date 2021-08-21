@@ -226,6 +226,10 @@ func NewMySQLConnectionEnvShard3() *MySQLConnectionEnv {
 	}
 }
 
+func SelectDBShardFromUserID(userID string) *sqlx.DB {
+	return dbShard1
+}
+
 func (mc *MySQLConnectionEnv) ConnectDB() (*sqlx.DB, error) {
 	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?parseTime=true&loc=Asia%%2FTokyo", mc.User, mc.Password, mc.Host, mc.Port, mc.DBName)
 	return sqlx.Open("mysql", dsn)
@@ -571,7 +575,7 @@ func getIsuList(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	dbShardCurrent = SelectDBShardFromUserID(jiaUserID)
+	dbShardCurrent := SelectDBShardFromUserID(jiaUserID)
 	responseList := []GetIsuListResponse{}
 	for _, isu := range isuList {
 		var lastCondition IsuCondition
@@ -864,7 +868,7 @@ func getIsuGraph(c echo.Context) error {
 		return c.String(http.StatusNotFound, "not found: isu")
 	}
 
-	dbShardCurrent = SelectDBShardFromUserID(jiaUserID)
+	dbShardCurrent := SelectDBShardFromUserID(jiaUserID)
 	res, err := generateIsuGraphResponse(dbShardCurrent, jiaIsuUUID, date)
 	if err != nil {
 		c.Logger().Error(err)
@@ -1131,7 +1135,7 @@ func getIsuConditions(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	dbShardCurrent = SelectDBShardFromUserID(jiaUserID)
+	dbShardCurrent := SelectDBShardFromUserID(jiaUserID)
 	conditionsResponse, err := getIsuConditionsFromDB(dbShardCurrent, jiaIsuUUID, endTime, conditionLevel, startTime, conditionLimit, isuName)
 	if err != nil {
 		c.Logger().Errorf("db error: %v", err)
@@ -1421,7 +1425,7 @@ func postIsuCondition(c echo.Context) error {
 		placeHolders = append(placeHolders, "(?, ?, ?, ?, ?)")
 	}
 
-	dbShardCurrent = SelectDBShardFromUserID(jiaUserID)
+	dbShardCurrent := SelectDBShardFromUserID(jiaUserID)
 	go func() {
 		_, err = dbShardCurrent.Exec(
 			"INSERT INTO `isu_condition`"+
