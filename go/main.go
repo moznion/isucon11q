@@ -1302,6 +1302,9 @@ func postIsuCondition(c echo.Context) error {
 		c.Logger().Errorf("db error: %v", err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	if jiaUserID == "" {
+		return c.String(http.StatusNotFound, "not found: isu")
+	}
 
 	parameters := make([]interface{}, 0, 1000)
 	placeHolders := make([]string, 0, len(req))
