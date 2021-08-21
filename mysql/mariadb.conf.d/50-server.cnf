@@ -66,6 +66,9 @@ log_error = /var/log/mysql/error.log
 #log_slow_rate_limit    = 1000
 #log_slow_verbosity     = query_plan
 #log-queries-not-using-indexes
+slow_query_log = OFF
+long_query_time = 0 # <= show *ALL* of queries
+slow_query_log_file = '/var/log/mysql/slow-query.log'
 #
 # The following can be used as easy to replay backup logs or for replication.
 # note: if you are setting up a replication slave, see README.Debian about
