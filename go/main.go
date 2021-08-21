@@ -198,6 +198,33 @@ func NewMySQLConnectionEnv() *MySQLConnectionEnv {
 		Password: getEnv("MYSQL_PASS", "isucon"),
 	}
 }
+func NewMySQLConnectionEnvShard1() *MySQLConnectionEnv {
+	return &MySQLConnectionEnv{
+		Host:     getEnv("MYSQL_HOST_SHARD1", "127.0.0.1"),
+		Port:     getEnv("MYSQL_PORT_SHARD1", "3306"),
+		User:     getEnv("MYSQL_USER_SHARD1", "isucon"),
+		DBName:   getEnv("MYSQL_DBNAME_SHRARD1", "isucondition_shard1"),
+		Password: getEnv("MYSQL_PASS_SHRARD1", "isucon"),
+	}
+}
+func NewMySQLConnectionEnvShard2() *MySQLConnectionEnv {
+	return &MySQLConnectionEnv{
+		Host:     getEnv("MYSQL_HOST_SHARD2", "127.0.0.1"),
+		Port:     getEnv("MYSQL_PORT_SHARD2", "3306"),
+		User:     getEnv("MYSQL_USER_SHARD2", "isucon"),
+		DBName:   getEnv("MYSQL_DBNAME_SHRARD2", "isucondition_shard2"),
+		Password: getEnv("MYSQL_PASS_SHRARD2", "isucon"),
+	}
+}
+func NewMySQLConnectionEnvShard3() *MySQLConnectionEnv {
+	return &MySQLConnectionEnv{
+		Host:     getEnv("MYSQL_HOST_SHARD3", "127.0.0.1"),
+		Port:     getEnv("MYSQL_PORT_SHARD3", "3306"),
+		User:     getEnv("MYSQL_USER_SHARD3", "isucon"),
+		DBName:   getEnv("MYSQL_DBNAME_SHRARD3", "isucondition_shard3"),
+		Password: getEnv("MYSQL_PASS_SHRARD3", "isucon"),
+	}
+}
 
 func (mc *MySQLConnectionEnv) ConnectDB() (*sqlx.DB, error) {
 	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?parseTime=true&loc=Asia%%2FTokyo", mc.User, mc.Password, mc.Host, mc.Port, mc.DBName)
@@ -279,6 +306,34 @@ func main() {
 		return
 	}
 	defer db.Close()
+
+	// Shard1
+	mySQLConnectionDataShard1 = NewMySQLConnectionEnvShard1()
+	dbShard1, err = mySQLConnectionDataShard1.ConnectDB()
+	if err != nil {
+		e.Logger.Fatalf("failed to connect db Shard1: %v", err)
+		return
+	}
+	dbShard1.SetMaxOpenConns(10)
+	defer dbShard1.Close()
+	// Shard2
+	mySQLConnectionDataShard2 = NewMySQLConnectionEnvShard2()
+	dbShard2, err = mySQLConnectionDataShard2.ConnectDB()
+	if err != nil {
+		e.Logger.Fatalf("failed to connect db Shard2: %v", err)
+		return
+	}
+	dbShard2.SetMaxOpenConns(10)
+	defer dbShard2.Close()
+	// Shard3
+	mySQLConnectionDataShard3 = NewMySQLConnectionEnvShard3()
+	dbShard3, err = mySQLConnectionDataShard3.ConnectDB()
+	if err != nil {
+		e.Logger.Fatalf("failed to connect db Shard3: %v", err)
+		return
+	}
+	dbShard3.SetMaxOpenConns(10)
+	defer dbShard3.Close()
 
 	postIsuConditionTargetBaseURL = os.Getenv("POST_ISUCONDITION_TARGET_BASE_URL")
 	if postIsuConditionTargetBaseURL == "" {
