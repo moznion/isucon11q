@@ -1418,8 +1418,9 @@ func postIsuCondition(c echo.Context) error {
 		placeHolders = append(placeHolders, "(?, ?, ?, ?, ?)")
 	}
 
+	dbShardCurrent = SelectDBShardFromUserID(jiaUserID)
 	go func() {
-		_, err = db.Exec(
+		_, err = dbShardCurrent.Exec(
 			"INSERT INTO `isu_condition`"+
 				"	(`jia_isu_uuid`, `timestamp`, `is_sitting`, `condition`, `message`)"+
 				"	VALUES "+strings.Join(placeHolders, ","),
