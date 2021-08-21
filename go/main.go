@@ -757,18 +757,10 @@ func getIsuIcon(c echo.Context) error {
 
 	jiaIsuUUID := c.Param("jia_isu_uuid")
 
-	imageFilePath := makeIsuImageFilePath(jiaUserID, jiaIsuUUID)
-	_, err = os.Stat(imageFilePath)
-	if err != nil {
-		return c.String(http.StatusNotFound, "not found: isu")
-	}
-	image, err := os.ReadFile(imageFilePath)
-	if err != nil {
-		c.Logger().Errorf("jpg file read error: %v", err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
+	c.Response().Header().Set("X-Accel-Redirect", "/image_redirect")
+	c.Response().Header().Set("X-Imagefile", fmt.Sprintf("%s-%s.jpg", jiaUserID, jiaIsuUUID))
 
-	return c.Blob(http.StatusOK, "", image)
+	return nil
 }
 
 // GET /api/isu/:jia_isu_uuid/graph
