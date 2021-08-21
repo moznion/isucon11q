@@ -1078,8 +1078,8 @@ func getIsuConditions(c echo.Context) error {
 
 func getConditionArrayFromLevels(conditionLevel map[string]interface{}) []string {
 	conditions := []string{}
-	for _, level := range conditionLevel {
-		conds := strings.getConditionArrayFromLevel(level)
+	for level := range conditionLevel {
+		conds := getConditionArrayFromLevel(level)
 		for _, cond := range conds {
 			conditions = append(conditions, cond)
 		}
@@ -1121,13 +1121,20 @@ func getIsuConditionsFromDB(db *sqlx.DB, jiaIsuUUID string, endTime time.Time, c
 	}
 	placeholder := strings.Join(s, ", ")
 
+	params := make([]interface{}, 0, 2+len(conditionStrs))
+	params = append(params, jiaIsuUUID)
+	params = append(params, endTime)
+	for _, cond := range conditionStrs {
+		params = append(params, cond)
+	}
+
 	if startTime.IsZero() {
 		err = db.Select(&conditions,
 			"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?"+
 				"	AND `timestamp` < ?"+
-				"	AND `condition` in (" + placeholder + ")"+
+				"	AND `condition` in ("+placeholder+")"+
 				"	ORDER BY `timestamp` DESC LIMIT 20",
-			jiaIsuUUID, endTime, conditionStrs...
+			params...,
 		)
 	} else {
 		err = db.Select(&conditions,
