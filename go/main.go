@@ -46,9 +46,15 @@ const (
 )
 
 var (
-	db                  *sqlx.DB
-	sessionStore        sessions.Store
-	mySQLConnectionData *MySQLConnectionEnv
+	db                        *sqlx.DB
+	dbShard1                  *sqlx.DB
+	dbShard2                  *sqlx.DB
+	dbShard3                  *sqlx.DB
+	sessionStore              sessions.Store
+	mySQLConnectionData       *MySQLConnectionEnv // user, isu_association_config, isu
+	mySQLConnectionDataShard1 *MySQLConnectionEnv // isu_condition shard1
+	mySQLConnectionDataShard2 *MySQLConnectionEnv // isu_condition shard2
+	mySQLConnectionDataShard3 *MySQLConnectionEnv // isu_condition shard3
 
 	jiaJWTSigningKey *ecdsa.PublicKey
 
