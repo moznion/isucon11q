@@ -1269,46 +1269,35 @@ func postIsuCondition(c echo.Context) error {
 
 // ISUのコンディションの文字列がcsv形式になっているか検証
 func isValidConditionFormat(conditionStr string) bool {
-	b := conditionStr == "is_broken=true,is_dirty=true,is_overweight=true" ||
-		conditionStr == "is_broken=true,is_dirty=true,is_overweight=false" ||
-		conditionStr == "is_broken=true,is_dirty=false,is_overweight=true" ||
-		conditionStr == "is_broken=true,is_dirty=false,is_overweight=false" ||
-		conditionStr == "is_broken=false,is_dirty=true,is_overweight=true" ||
-		conditionStr == "is_broken=false,is_dirty=false,is_overweight=true" ||
-		conditionStr == "is_broken=false,is_dirty=false,is_overweight=false"
-	return b
+	keys := []string{"is_dirty=", "is_overweight=", "is_broken="}
+	const valueTrue = "true"
+	const valueFalse = "false"
 
-	//// ---
-	//
-	//keys := []string{"is_dirty=", "is_overweight=", "is_broken="}
-	//const valueTrue = "true"
-	//const valueFalse = "false"
-	//
-	//idxCondStr := 0
-	//
-	//for idxKeys, key := range keys {
-	//	if !strings.HasPrefix(conditionStr[idxCondStr:], key) {
-	//		return false
-	//	}
-	//	idxCondStr += len(key)
-	//
-	//	if strings.HasPrefix(conditionStr[idxCondStr:], valueTrue) {
-	//		idxCondStr += len(valueTrue)
-	//	} else if strings.HasPrefix(conditionStr[idxCondStr:], valueFalse) {
-	//		idxCondStr += len(valueFalse)
-	//	} else {
-	//		return false
-	//	}
-	//
-	//	if idxKeys < (len(keys) - 1) {
-	//		if conditionStr[idxCondStr] != ',' {
-	//			return false
-	//		}
-	//		idxCondStr++
-	//	}
-	//}
-	//
-	//return (idxCondStr == len(conditionStr))
+	idxCondStr := 0
+
+	for idxKeys, key := range keys {
+		if !strings.HasPrefix(conditionStr[idxCondStr:], key) {
+			return false
+		}
+		idxCondStr += len(key)
+
+		if strings.HasPrefix(conditionStr[idxCondStr:], valueTrue) {
+			idxCondStr += len(valueTrue)
+		} else if strings.HasPrefix(conditionStr[idxCondStr:], valueFalse) {
+			idxCondStr += len(valueFalse)
+		} else {
+			return false
+		}
+
+		if idxKeys < (len(keys) - 1) {
+			if conditionStr[idxCondStr] != ',' {
+				return false
+			}
+			idxCondStr++
+		}
+	}
+
+	return (idxCondStr == len(conditionStr))
 }
 
 func getIndex(c echo.Context) error {
