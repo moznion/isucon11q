@@ -757,8 +757,7 @@ func getIsuIcon(c echo.Context) error {
 
 	jiaIsuUUID := c.Param("jia_isu_uuid")
 
-	c.Response().Header().Set("X-Accel-Redirect", "/image_redirect")
-	c.Response().Header().Set("X-Imagefile", fmt.Sprintf("%s-%s.jpg", jiaUserID, jiaIsuUUID))
+	c.Response().Header().Set("X-Accel-Redirect", fmt.Sprintf("/image_redirect/%s-%s.jpg", jiaUserID, jiaIsuUUID))
 
 	return nil
 }
