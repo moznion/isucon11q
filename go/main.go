@@ -72,6 +72,17 @@ type Isu struct {
 	UpdatedAt  time.Time `db:"updated_at" json:"-"`
 }
 
+type IsuWth struct {
+	ID         int       `db:"id" json:"id"`
+	JIAIsuUUID string    `db:"jia_isu_uuid" json:"jia_isu_uuid"`
+	Name       string    `db:"name" json:"name"`
+	Image      []byte    `db:"image" json:"-"`
+	Character  string    `db:"character" json:"character"`
+	JIAUserID  string    `db:"jia_user_id" json:"-"`
+	CreatedAt  time.Time `db:"created_at" json:"-"`
+	UpdatedAt  time.Time `db:"updated_at" json:"-"`
+}
+
 type IsuFromJIA struct {
 	Character string `json:"character"`
 }
@@ -497,7 +508,8 @@ func getIsuList(c echo.Context) error {
 	isuList := []Isu{}
 	err = db.Select(
 		&isuList,
-		"SELECT * FROM `isu` WHERE `jia_user_id` = ? ORDER BY `id` DESC",
+		// カラム減らせるのでは？
+		"SELECT id, jia_isu_uuid, name, `character`, jia_user_id, created_at, updated_at FROM `isu` WHERE `jia_user_id` = ? ORDER BY `id` DESC",
 		jiaUserID)
 	if err != nil {
 		c.Logger().Errorf("db error: %v", err)
@@ -1228,9 +1240,28 @@ func calculateConditionLevel(condition string) (string, error) {
 	//return conditionLevel, nil
 }
 
+//func tickGenerateTrend(c echo.Context) {
+//	ticker := time.Tick(1000 * time.Millisecond)
+//	for range ticker {
+//
+//	}
+//}
+//
+//var trendResponse []TrendResponse{}
+
+type Trending struct {
+	ID        int       `db:"id" json:"id"`
+	Timestamp time.Time `db:"timestamp"`
+	Condition string    `db:"condition"`
+}
+
 // GET /api/trend
 // ISUの性格毎の最新のコンディション情報
 func getTrend(c echo.Context) error {
+	//if trendResponse != nil {
+	//	return c.JSON(http.StatusOK, trendResponse)
+	//}
+
 	characterList := []Isu{}
 	err := db.Select(&characterList, "SELECT `character` FROM `isu` GROUP BY `character`")
 	if err != nil {
@@ -1241,9 +1272,10 @@ func getTrend(c echo.Context) error {
 	res := []TrendResponse{}
 
 	for _, character := range characterList {
-		isuList := []Isu{}
-		err = db.Select(&isuList,
-			"SELECT * FROM `isu` WHERE `character` = ?",
+		trendingList := []Trending{}
+		err = db.Select(
+			&trendingList,
+			"SELECT con.timestamp as `timestamp` , con.`condition` as `condition`, isu.`id` as `id` FROM (select max(timestamp) as `timestamp`, `condition`, jia_isu_uuid FROM isu_condition GROUP BY jia_isu_uuid ORDER BY `timestamp` DESC) con INNER JOIN isu ON con.jia_isu_uuid = isu.jia_isu_uuid WHERE isu.character = ?",
 			character.Character,
 		)
 		if err != nil {
@@ -1251,44 +1283,72 @@ func getTrend(c echo.Context) error {
 			return c.NoContent(http.StatusInternalServerError)
 		}
 
+		log.Printf("%#v", trendingList)
+
+		//isuList := []Isu{}
+		//err = db.Select(&isuList,
+		//	"SELECT `id`, `jia_isu_uuid` FROM `isu` WHERE `character` = ?",
+		//	character.Character,
+		//)
+		//if err != nil {
+		//	c.Logger().Errorf("db error: %v", err)
+		//	return c.NoContent(http.StatusInternalServerError)
+		//}
+
 		characterInfoIsuConditions := []*TrendCondition{}
 		characterWarningIsuConditions := []*TrendCondition{}
 		characterCriticalIsuConditions := []*TrendCondition{}
-		for _, isu := range isuList {
-			conditions := []IsuCondition{}
-			err = db.Select(&conditions,
-				"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC LIMIT 1",
-				isu.JIAIsuUUID,
-			)
-			if err != nil {
-				c.Logger().Errorf("db error: %v", err)
-				return c.NoContent(http.StatusInternalServerError)
-			}
+		for _, isu := range trendingList {
+			//conditions := []IsuCondition{}
+			//err = db.Select(&conditions,
+			//	"SELECT `timestamp`, `condition` FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC LIMIT 1",
+			//	isu.JIAIsuUUID,
+			//)
+			//if err != nil {
+			//	c.Logger().Errorf("db error: %v", err)
+			//	return c.NoContent(http.StatusInternalServerError)
+			//}
 
-			if len(conditions) > 0 {
-				// 最新のCondから見る
-				isuLastCondition := conditions[0]
-				// #12 レベルを計算
-				conditionLevel, err := calculateConditionLevel(isuLastCondition.Condition)
-				if err != nil {
-					c.Logger().Error(err)
-					return c.NoContent(http.StatusInternalServerError)
-				}
-				trendCondition := TrendCondition{
-					ID:        isu.ID,
-					Timestamp: isuLastCondition.Timestamp.Unix(),
-				}
-				switch conditionLevel {
-				case "info":
-					characterInfoIsuConditions = append(characterInfoIsuConditions, &trendCondition)
-				case "warning":
-					characterWarningIsuConditions = append(characterWarningIsuConditions, &trendCondition)
-				case "critical":
-					characterCriticalIsuConditions = append(characterCriticalIsuConditions, &trendCondition)
-				}
+			//if len(conditions) > 0 {
+			//	// 最新のCondから見る
+			//	isuLastCondition := conditions[0]
+			//	// #12 レベルを計算
+			//	conditionLevel, err := calculateConditionLevel(isuLastCondition.Condition)
+			//	if err != nil {
+			//		c.Logger().Error(err)
+			//		return c.NoContent(http.StatusInternalServerError)
+			//	}
+			//	trendCondition := TrendCondition{
+			//		ID:        isu.ID,
+			//		Timestamp: isuLastCondition.Timestamp.Unix(),
+			//	}
+			//	switch conditionLevel {
+			//	case "info":
+			//		characterInfoIsuConditions = append(characterInfoIsuConditions, &trendCondition)
+			//	case "warning":
+			//		characterWarningIsuConditions = append(characterWarningIsuConditions, &trendCondition)
+			//	case "critical":
+			//		characterCriticalIsuConditions = append(characterCriticalIsuConditions, &trendCondition)
+			//	}
+			//}
+			trendCondition := TrendCondition{
+				ID:        isu.ID,
+				Timestamp: isu.Timestamp.Unix(),
+			}
+			switch isu.Condition {
+			case "is_dirty=false,is_overweight=false,is_broken=false":
+				characterInfoIsuConditions = append(characterInfoIsuConditions, &trendCondition)
+			case "is_dirty=true,is_overweight=true,is_broken=true":
+				characterCriticalIsuConditions = append(characterCriticalIsuConditions, &trendCondition)
+			default:
+				characterWarningIsuConditions = append(characterWarningIsuConditions, &trendCondition)
 			}
 
 		}
+
+		log.Printf("characterCriticalIsuConditions %#v", characterCriticalIsuConditions)
+		log.Printf("characterWarningIsuConditions %#v", characterWarningIsuConditions)
+		log.Printf("characterCriticalIsuConditions %#v", characterCriticalIsuConditions)
 
 		sort.Slice(characterInfoIsuConditions, func(i, j int) bool {
 			return characterInfoIsuConditions[i].Timestamp > characterInfoIsuConditions[j].Timestamp
@@ -1310,6 +1370,91 @@ func getTrend(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, res)
 }
+
+//func updateTrendRes(c echo.Context) ([]TrendResponse{}, error) {
+//	if trendResponse != nil {
+//		return trendResponse, nil
+//	}
+//
+//	characterList := []Isu{}
+//	err := db.Select(&characterList, "SELECT `character` FROM `isu` GROUP BY `character`")
+//	if err != nil {
+//		c.Logger().Errorf("db error: %v", err)
+//		return nil, err
+//	}
+//
+//	res := []TrendResponse{}
+//
+//	for _, character := range characterList {
+//		isuList := []Isu{}
+//		err = db.Select(&isuList,
+//			"SELECT * FROM `isu` WHERE `character` = ?",
+//			character.Character,
+//		)
+//		if err != nil {
+//			c.Logger().Errorf("db error: %v", err)
+//			return c.NoContent(http.StatusInternalServerError)
+//		}
+//
+//		characterInfoIsuConditions := []*TrendCondition{}
+//		characterWarningIsuConditions := []*TrendCondition{}
+//		characterCriticalIsuConditions := []*TrendCondition{}
+//		for _, isu := range isuList {
+//			conditions := []IsuCondition{}
+//			err = db.Select(&conditions,
+//				"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC LIMIT 1",
+//				isu.JIAIsuUUID,
+//			)
+//			if err != nil {
+//				c.Logger().Errorf("db error: %v", err)
+//				return c.NoContent(http.StatusInternalServerError)
+//			}
+//
+//			if len(conditions) > 0 {
+//				// 最新のCondから見る
+//				isuLastCondition := conditions[0]
+//				// #12 レベルを計算
+//				conditionLevel, err := calculateConditionLevel(isuLastCondition.Condition)
+//				if err != nil {
+//					c.Logger().Error(err)
+//					return c.NoContent(http.StatusInternalServerError)
+//				}
+//				trendCondition := TrendCondition{
+//					ID:        isu.ID,
+//					Timestamp: isuLastCondition.Timestamp.Unix(),
+//				}
+//				switch conditionLevel {
+//				case "info":
+//					characterInfoIsuConditions = append(characterInfoIsuConditions, &trendCondition)
+//				case "warning":
+//					characterWarningIsuConditions = append(characterWarningIsuConditions, &trendCondition)
+//				case "critical":
+//					characterCriticalIsuConditions = append(characterCriticalIsuConditions, &trendCondition)
+//				}
+//			}
+//
+//		}
+//
+//		sort.Slice(characterInfoIsuConditions, func(i, j int) bool {
+//			return characterInfoIsuConditions[i].Timestamp > characterInfoIsuConditions[j].Timestamp
+//		})
+//		sort.Slice(characterWarningIsuConditions, func(i, j int) bool {
+//			return characterWarningIsuConditions[i].Timestamp > characterWarningIsuConditions[j].Timestamp
+//		})
+//		sort.Slice(characterCriticalIsuConditions, func(i, j int) bool {
+//			return characterCriticalIsuConditions[i].Timestamp > characterCriticalIsuConditions[j].Timestamp
+//		})
+//		res = append(res,
+//			TrendResponse{
+//				Character: character.Character,
+//				Info:      characterInfoIsuConditions,
+//				Warning:   characterWarningIsuConditions,
+//				Critical:  characterCriticalIsuConditions,
+//			})
+//	}
+//
+//	return res, nil
+//}
 
 var isuConditionBufferMu sync.Mutex
 var isuConditionBuffer = make([]interface{}, 0, 50000)
