@@ -1121,14 +1121,14 @@ func getIsuConditionsFromDB(db *sqlx.DB, jiaIsuUUID string, endTime time.Time, c
 	}
 	placeholder := strings.Join(s, ", ")
 
-	params := make([]interface{}, 0, 2+len(conditionStrs))
-	params = append(params, jiaIsuUUID)
-	params = append(params, endTime)
-	for _, cond := range conditionStrs {
-		params = append(params, cond)
-	}
-
 	if startTime.IsZero() {
+		params := make([]interface{}, 0, 2+len(conditionStrs))
+		params = append(params, jiaIsuUUID)
+		params = append(params, endTime)
+		for _, cond := range conditionStrs {
+			params = append(params, cond)
+		}
+
 		err = db.Select(&conditions,
 			"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?"+
 				"	AND `timestamp` < ?"+
@@ -1137,12 +1137,21 @@ func getIsuConditionsFromDB(db *sqlx.DB, jiaIsuUUID string, endTime time.Time, c
 			params...,
 		)
 	} else {
+		params := make([]interface{}, 0, 3+len(conditionStrs))
+		params = append(params, jiaIsuUUID)
+		params = append(params, endTime)
+		params = append(params, startTime)
+		for _, cond := range conditionStrs {
+			params = append(params, cond)
+		}
+
 		err = db.Select(&conditions,
 			"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?"+
 				"	AND `timestamp` < ?"+
 				"	AND ? <= `timestamp`"+
-				"	ORDER BY `timestamp` DESC",
-			jiaIsuUUID, endTime, startTime,
+				"	AND `condition` in ("+placeholder+")"+
+				"	ORDER BY `timestamp` DESC LIMIT 20",
+			params...,
 		)
 	}
 	if err != nil {
