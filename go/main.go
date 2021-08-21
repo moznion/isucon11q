@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"sort"
@@ -230,14 +229,9 @@ func main() {
 	log.Print("I'M START 2")
 	jiaServiceUrl = ""
 
-	// TODO 最後にコレひっぺがしてください
-	go func() {
-		log.Fatal(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	e := echo.New()
 	e.Debug = true
-	e.Logger.SetLevel(log.DEBUG)
+	e.Logger.SetLevel(log.OFF)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
