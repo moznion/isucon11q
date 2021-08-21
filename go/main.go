@@ -883,39 +883,76 @@ func generateIsuGraphResponse(tx *sqlx.DB, jiaIsuUUID string, graphDate time.Tim
 func calculateGraphDataPoint(isuConditions []IsuCondition) (GraphDataPoint, error) {
 	conditionsCount := map[string]int{"is_broken": 0, "is_dirty": 0, "is_overweight": 0}
 	rawScore := 0
-	for _, condition := range isuConditions {
-		badConditionsCount := 0
-
-		if !isValidConditionFormat(condition.Condition) {
-			return GraphDataPoint{}, fmt.Errorf("invalid condition format")
-		}
-
-		for _, condStr := range strings.Split(condition.Condition, ",") {
-			keyValue := strings.Split(condStr, "=")
-
-			conditionName := keyValue[0]
-			if keyValue[1] == "true" {
-				conditionsCount[conditionName] += 1
-				badConditionsCount++
-			}
-		}
-
-		if badConditionsCount >= 3 {
-			rawScore += scoreConditionLevelCritical
-		} else if badConditionsCount >= 1 {
-			rawScore += scoreConditionLevelWarning
-		} else {
-			rawScore += scoreConditionLevelInfo
-		}
-	}
-
 	sittingCount := 0
+
 	for _, condition := range isuConditions {
 		if condition.IsSitting {
 			sittingCount++
 		}
+
+		//if !isValidConditionFormat(condition.Condition) {
+		//	return GraphDataPoint{}, fmt.Errorf("invalid condition format")
+		//}
+
+		if condition.Condition == "is_dirty=true,is_overweight=true,is_broken=true" {
+			conditionsCount["is_dirty"] += 1
+			conditionsCount["is_overweight"] += 1
+			conditionsCount["is_broken"] += 1
+			rawScore += scoreConditionLevelCritical
+		} else if condition.Condition == "is_dirty=true,is_overweight=true,is_broken=false" {
+			conditionsCount["is_dirty"] += 1
+			conditionsCount["is_overweight"] += 1
+			rawScore += scoreConditionLevelWarning
+		} else if condition.Condition == "is_dirty=true,is_overweight=false,is_broken=true" {
+			conditionsCount["is_dirty"] += 1
+			conditionsCount["is_broken"] += 1
+			rawScore += scoreConditionLevelWarning
+		} else if condition.Condition == "is_dirty=true,is_overweight=false,is_broken=false" {
+			conditionsCount["is_dirty"] += 1
+			rawScore += scoreConditionLevelWarning
+		} else if condition.Condition == "is_dirty=false,is_overweight=true,is_broken=true" {
+			conditionsCount["is_overweight"] += 1
+			conditionsCount["is_broken"] += 1
+			rawScore += scoreConditionLevelWarning
+		} else if condition.Condition == "is_dirty=false,is_overweight=true,is_broken=false" {
+			conditionsCount["is_overweight"] += 1
+			rawScore += scoreConditionLevelWarning
+		} else if condition.Condition == "is_dirty=false,is_overweight=false,is_broken=true" {
+			conditionsCount["is_broken"] += 1
+			rawScore += scoreConditionLevelWarning
+		} else if condition.Condition == "is_dirty=false,is_overweight=false,is_broken=false" {
+			rawScore += scoreConditionLevelInfo
+		}
+
+		//badConditionsCount := 0
+
+		//
+		//for _, condStr := range strings.Split(condition.Condition, ",") {
+		//	keyValue := strings.Split(condStr, "=")
+		//
+		//	conditionName := keyValue[0]
+		//	if keyValue[1] == "true" {
+		//		conditionsCount[conditionName] += 1
+		//		badConditionsCount++
+		//	}
+		//}
+		//
+		//if badConditionsCount >= 3 {
+		//	rawScore += scoreConditionLevelCritical
+		//} else if badConditionsCount >= 1 {
+		//	rawScore += scoreConditionLevelWarning
+		//} else {
+		//	rawScore += scoreConditionLevelInfo
+		//}
 	}
 
+	//sittingCount := 0
+	//for _, condition := range isuConditions {
+	//	if condition.IsSitting {
+	//		sittingCount++
+	//	}
+	//}
+	//
 	isuConditionsLength := len(isuConditions)
 
 	score := rawScore * 100 / 3 / isuConditionsLength
