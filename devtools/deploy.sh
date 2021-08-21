@@ -8,7 +8,7 @@ pushd "$REPO_ROOT/go"
 make isucondition
 popd
 
-for ADDR in "52.192.11.192" "13.112.241.239" "54.168.227.71"; do
+for ADDR in "isucondition-1.t.isucon.dev" "isucondition-2.t.isucon.dev" "isucondition-3.t.isucon.dev"; do
   ssh "isucon@$ADDR" sudo systemctl stop isucondition.go.service
   scp "$REPO_ROOT/go/isucondition" "isucon@${ADDR}:/home/isucon/webapp/go/isucondition"
   ssh "isucon@$ADDR" sudo systemctl restart isucondition.go.service
