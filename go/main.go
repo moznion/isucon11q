@@ -1076,19 +1076,58 @@ func getIsuConditions(c echo.Context) error {
 	return c.JSON(http.StatusOK, conditionsResponse)
 }
 
+func getConditionArrayFromLevels(conditionLevel map[string]interface{}) []string {
+	conditions := []string{}
+	for _, level := range conditionLevel {
+		conds := strings.getConditionArrayFromLevel(level)
+		for _, cond := range conds {
+			conditions = append(conditions, cond)
+		}
+	}
+	return conditions
+}
+func getConditionArrayFromLevel(conditionLevel string) []string {
+	if conditionLevel == conditionLevelCritical {
+		return []string{"is_dirty=true,is_overweight=true,is_broken=true"}
+	}
+	if conditionLevel == conditionLevelWarning {
+		return []string{
+			"is_dirty=true,is_overweight=true,is_broken=false",
+			"is_dirty=true,is_overweight=false,is_broken=true",
+			"is_dirty=true,is_overweight=false,is_broken=false",
+			"is_dirty=false,is_overweight=true,is_broken=true",
+			"is_dirty=false,is_overweight=true,is_broken=false",
+			"is_dirty=false,is_overweight=false,is_broken=true",
+		}
+	}
+	if conditionLevel == conditionLevelInfo {
+		return []string{
+			"is_dirty=false,is_overweight=false,is_broken=false",
+		}
+	}
+	return []string{}
+}
+
 // ISUのコンディションをDBから取得
 func getIsuConditionsFromDB(db *sqlx.DB, jiaIsuUUID string, endTime time.Time, conditionLevel map[string]interface{}, startTime time.Time,
 	limit int, isuName string) ([]*GetIsuConditionResponse, error) {
 
 	conditions := []IsuCondition{}
 	var err error
+	conditionStrs := getConditionArrayFromLevels(conditionLevel)
+	s := []string{}
+	for range conditionStrs {
+		s = append(s, "?")
+	}
+	placeholder := strings.Join(s, ", ")
 
 	if startTime.IsZero() {
 		err = db.Select(&conditions,
 			"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ?"+
 				"	AND `timestamp` < ?"+
-				"	ORDER BY `timestamp` DESC",
-			jiaIsuUUID, endTime,
+				"	AND `condition` in (" + placeholder + ")"+
+				"	ORDER BY `timestamp` DESC LIMIT 20",
+			jiaIsuUUID, endTime, conditionStrs...
 		)
 	} else {
 		err = db.Select(&conditions,
