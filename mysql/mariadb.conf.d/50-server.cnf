@@ -16,7 +16,7 @@
 user                    = mysql
 pid-file                = /run/mysqld/mysqld.pid
 socket                  = /run/mysqld/mysqld.sock
-#port                   = 3306
+port                   = 3306
 basedir                 = /usr
 datadir                 = /var/lib/mysql
 tmpdir                  = /tmp
@@ -25,15 +25,15 @@ lc-messages-dir         = /usr/share/mysql
 
 # Instead of skip-networking the default is now to listen only on
 # localhost which is more compatible and is not less secure.
-bind-address            = 127.0.0.1
+bind-address            = 0.0.0.0
 
 #
 # * Fine Tuning
 #
-#key_buffer_size        = 16M
-#max_allowed_packet     = 16M
-#thread_stack           = 192K
-#thread_cache_size      = 8
+key_buffer_size        = 16M
+max_allowed_packet     = 16M
+thread_stack           = 192K
+thread_cache_size      = 8
 # This replaces the startup script and checks MyISAM tables if needed
 # the first time they are touched
 #myisam_recover_options = BACKUP
@@ -66,9 +66,9 @@ log_error = /var/log/mysql/error.log
 #log_slow_rate_limit    = 1000
 #log_slow_verbosity     = query_plan
 #log-queries-not-using-indexes
-slow_query_log = ON
-long_query_time = 0 # <= show *ALL* of queries
-slow_query_log_file = '/var/log/mysql/slow-query.log'
+slow_query_log = OFF
+#long_query_time = 0 # <= show *ALL* of queries
+#slow_query_log_file = '/var/log/mysql/slow-query.log'
 #
 # The following can be used as easy to replay backup logs or for replication.
 # note: if you are setting up a replication slave, see README.Debian about
@@ -76,7 +76,7 @@ slow_query_log_file = '/var/log/mysql/slow-query.log'
 #server-id              = 1
 #log_bin                = /var/log/mysql/mysql-bin.log
 expire_logs_days        = 10
-#max_binlog_size        = 100M
+max_binlog_size        = 100M
 #binlog_do_db           = include_database_name
 #binlog_ignore_db       = exclude_database_name
 
@@ -113,6 +113,15 @@ collation-server      = utf8mb4_general_ci
 # InnoDB is enabled by default with a 10MB datafile in /var/lib/mysql/.
 # Read the manual for more InnoDB related options. There are many!
 
+disable-log-bin
+innodb_adaptive_flushing = OFF
+innodb_doublewrite = 0
+innodb_log_group_home_dir = /dev/shm/ # need to change the config for Apparmor
+innodb_flush_log_at_trx_commit = 0
+innodb_flush_method = O_DIRECT_NO_FSYNC
+innodb_adaptive_hash_index = 0
+innodb_buffer_pool_size = 2G
+
 #
 # * Unix socket authentication plugin is built-in since 10.0.22-6
 #
@@ -134,4 +143,5 @@ collation-server      = utf8mb4_general_ci
 # If you use the same .cnf file for MariaDB of different versions,
 # use this group for options that older servers don't understand
 [mariadb-10.3]
+
 
